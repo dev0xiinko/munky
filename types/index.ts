@@ -13,9 +13,11 @@ export type SalaryFrequency = "monthly" | "semimonthly" | "biweekly" | "weekly" 
 
 export interface Client extends Syncable {
   name: string;
-  salary_centavos: number;
+  salary_centavos: number; // amount PER PAYCHECK
   salary_frequency: SalaryFrequency;
-  next_pay_date: string; // YYYY-MM-DD
+  pay_day: number; // day-of-month for monthly sources (1–31)
+  start_date: string; // YYYY-MM-DD; month the source is active from (also anchor for biweekly)
+  next_pay_date: string; // YYYY-MM-DD (display: next upcoming payday)
   notes: string;
 }
 

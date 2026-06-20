@@ -135,6 +135,8 @@ export async function seedIfEmpty(): Promise<void> {
     name,
     salary_centavos: toCentavos(amt),
     salary_frequency: freq,
+    pay_day: Number(next.slice(8, 10)) || 30,
+    start_date: nowISO().slice(0, 7) + "-01",
     next_pay_date: next,
     notes: "",
     ...stamp(),

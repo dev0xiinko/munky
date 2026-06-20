@@ -24,13 +24,17 @@ import {
 import { formatPHP, formatSigned } from "@/lib/money";
 import {
   canAfford,
-  monthlyIncomeOf,
   monthlySavings,
   projectedMonthEnd,
   savingsRate,
-  totalIncome,
   totalSpent,
 } from "@/lib/finance";
+import {
+  accruedThisMonth,
+  expectedThisMonth,
+  incomeForMonth,
+  nextPayday,
+} from "@/lib/income";
 import { useUI } from "@/stores/ui";
 
 const f = formatPHP;
@@ -80,29 +84,36 @@ export function useDerived() {
   const billsRemainingC = activeBills.filter(billUnpaid).reduce((s, b) => s + b.amount_centavos, 0);
   const billsPaidC = billsTotalC - billsRemainingC;
 
-  const income = totalIncome(clients);
   const spent = totalSpent(monthExpenses);
   const billsTotal = billsTotalC;
 
-  // No manual monthly budget. Safe-to-spend is whatever income is left after the
-  // money that's ALLOCATED away — bills and savings — even if it hasn't actually
-  // been paid or set aside yet. We reserve the full bills obligation (paid +
-  // still-to-pay) and the full planned monthly savings, then subtract what's
-  // already been spent. (Month-rollover — releasing planned savings that go
-  // un-committed by month end back into safe-to-spend — is not yet modelled.)
+  // INCOME IS ACTUALS. It starts at ₱0 each month and accrues as each source's
+  // scheduled paydays pass, plus any one-off ("instant") income received this
+  // month. Money you haven't been paid yet does NOT count.
+  const instantThisMonthC = incomeTx
+    .filter((t) => t.received_date.startsWith(monthPrefix))
+    .reduce((s, t) => s + t.amount_centavos, 0);
+  const accruedC = clients.reduce((s, c) => s + accruedThisMonth(c, today), 0);
+  const income = accruedC + instantThisMonthC; // received so far this month
+  // Expected by month-end = every scheduled payday this month + instant already in.
+  const expectedMonthC = clients.reduce((s, c) => s + expectedThisMonth(c, today), 0);
+  const expectedC = expectedMonthC + instantThisMonthC;
+
+  // Cash-on-hand model: "safe to spend" is the money you've actually RECEIVED
+  // minus what's actually left your hands — expenses, bills you've PAID, and
+  // savings you've set aside. Unpaid bills / un-set-aside savings don't reduce
+  // it (they show under Upcoming / Left to pay); paying them is what moves it.
   const plannedSavingsC = monthlySavings(goals);
-  const reservedC = billsTotalC + plannedSavingsC;
-  const remaining = income - reservedC - spent; // "safe to spend"
-  const committedC = spent + reservedC;
-  const committedPct = income > 0 ? Math.max(0, Math.min(100, (committedC / income) * 100)) : 0;
+  const outflowC = spent + billsPaidC + savedThisMonth;
+  const remaining = income - outflowC; // safe to spend = cash on hand
+  const committedPct = income > 0 ? Math.max(0, Math.min(100, (outflowC / income) * 100)) : 0;
   const dailyBudget = remaining / Math.max(1, daysLeft);
 
-  // Headroom for ANOTHER savings contribution = income after bills, expenses,
-  // and savings already set aside this month (planned savings not double-counted).
-  const savingsRoomC = income - billsTotalC - spent - savedThisMonth;
+  // Headroom for ANOTHER savings contribution = cash on hand right now.
+  const savingsRoomC = remaining;
 
-  // Dashboard "Savings" + analytics reflect the allocated (planned) monthly figure.
-  const savings = plannedSavingsC;
+  // Dashboard "Savings" mini-stat shows what's actually been set aside this month.
+  const savings = savedThisMonth;
 
   // category spend map (this month)
   const catMap: Record<string, number> = {};
@@ -130,9 +141,11 @@ export function useDerived() {
     .filter((e) => e.expense_date === today)
     .reduce((s, e) => s + e.amount_centavos, 0);
 
-  // clients
+  // clients — what each source has paid SO FAR this month vs expected, plus the
+  // next payday (computed from the schedule, not a stored date).
   const clientsView = clients.map((c) => {
-    const inDays = diffDays(c.next_pay_date);
+    const np = nextPayday(c, today);
+    const inDays = np ? diffDays(np) : null;
     return {
       id: c.id,
       client: c,
@@ -144,12 +157,13 @@ export function useDerived() {
           : c.salary_frequency === "semimonthly"
             ? "Twice a month"
             : "Monthly",
-      nextLabel: shortDate(c.next_pay_date),
-      inDays: inDays <= 0 ? "today" : "in " + inDays + "d",
+      receivedFmt: f(accruedThisMonth(c, today)),
+      expectedFmt: f(expectedThisMonth(c, today)),
+      nextLabel: np ? shortDate(np) : "—",
+      inDays: inDays == null ? "" : inDays <= 0 ? "today" : "in " + inDays + "d",
       mono: (c.name.match(/[A-Za-z]/) ?? ["?"])[0].toUpperCase(),
     };
   });
-  const clientTotal = totalIncome(clients);
 
   // goals
   const goalsView = goals.map((g) => {
@@ -194,8 +208,7 @@ export function useDerived() {
   const projected = projectedMonthEnd(spent, daysElapsed, dim);
   const projOver = projected - budgetLimit;
 
-  // Dashboard headline = "safe to spend" = the income left after allocations
-  // (bills + planned savings) and what's already spent, computed above.
+  // Dashboard headline = "safe to spend" = cash on hand (received − actual outflow).
   const safeC = remaining;
   const safeDailyC = dailyBudget;
   const safeUsedPct = committedPct;
@@ -232,15 +245,17 @@ export function useDerived() {
       const sort = !started ? 900 + b.due_day : kind === "overdue" ? -1 : Math.max(0, d);
       return { label: b.name, sub, amt: -b.amount_centavos, kind, sort };
     });
-  const clientItems = clients.map((c) => {
-    const d = diffDays(c.next_pay_date);
-    return {
+  const clientItems = clients.flatMap((c) => {
+    const np = nextPayday(c, today);
+    if (!np) return [];
+    const d = diffDays(np);
+    return [{
       label: c.name,
-      sub: d <= 0 ? "Salary today" : `Salary in ${d} days`,
-      amt: monthlyIncomeOf(c),
+      sub: d <= 0 ? "Payday today" : `Payday in ${d} days`,
+      amt: c.salary_centavos, // one paycheck
       kind: "in" as Kind,
       sort: Math.max(0, d),
-    };
+    }];
   });
   const upcomingView = [...billItems, ...clientItems]
     .sort((a, b) => a.sort - b.sort)
@@ -282,19 +297,22 @@ export function useDerived() {
     vSub = "Still " + f(afDaily) + "/day left for the month";
   }
 
-  // analytics history — real last-6-months series (income vs expenses + savings
-  // growth), replacing the old hardcoded demo arrays. Income uses the actual
-  // income_transactions ledger; if none has ever been logged we fall back to
-  // projected monthly income (sum of clients) so the chart isn't a flat zero.
+  // analytics history — real last-6-months series. Income per month = scheduled
+  // pay that landed that month (full for past months, accrued-to-date for the
+  // current one) + any instant income logged that month.
   const months = lastNMonths(6);
-  const hasIncomeLedger = incomeTx.length > 0;
-  const trendSeries = months.map(({ key, label }) => ({
-    m: label,
-    inc: hasIncomeLedger
-      ? incomeTx.filter((t) => t.received_date.startsWith(key)).reduce((s, t) => s + t.amount_centavos, 0)
-      : income,
-    exp: expenses.filter((e) => e.expense_date.startsWith(key)).reduce((s, e) => s + e.amount_centavos, 0),
-  }));
+  const trendSeries = months.map(({ key, label }) => {
+    const [yy, mm] = key.split("-").map(Number);
+    const sched = clients.reduce((s, c) => s + incomeForMonth(c, yy, mm, today), 0);
+    const instant = incomeTx
+      .filter((t) => t.received_date.startsWith(key))
+      .reduce((s, t) => s + t.amount_centavos, 0);
+    return {
+      m: label,
+      inc: sched + instant,
+      exp: expenses.filter((e) => e.expense_date.startsWith(key)).reduce((s, e) => s + e.amount_centavos, 0),
+    };
+  });
   // Cumulative saved at each month-end = current total minus contributions made
   // after that month. Ends exactly at totalSaved; pre-app baseline stays flat.
   const savSeries = months.map(({ key }) =>
@@ -303,13 +321,14 @@ export function useDerived() {
       .filter((c) => c.contributed_date.slice(0, 7) > key)
       .reduce((s, c) => s + c.amount_centavos, 0),
   );
-  const avgIncomeC = hasIncomeLedger
-    ? Math.round(trendSeries.reduce((s, t) => s + t.inc, 0) / Math.max(1, trendSeries.length))
-    : income;
+  const monthsWithIncome = trendSeries.filter((t) => t.inc > 0).length;
+  const avgIncomeC = monthsWithIncome
+    ? Math.round(trendSeries.reduce((s, t) => s + t.inc, 0) / monthsWithIncome)
+    : 0;
 
   // analytics summary numbers
-  const net = income - spent - billsTotal;
-  const savRate = savingsRate(savings, income);
+  const net = income - spent - billsPaidC - savedThisMonth; // received − actual outflow
+  const savRate = savingsRate(plannedSavingsC, expectedMonthC);
 
   return {
     daysLeft,
@@ -330,10 +349,12 @@ export function useDerived() {
     safeDailyFmt: formatSigned(safeDailyC),
     safeUsedPct,
     safeLabel: "Safe to spend",
-    safeUsedLabel: "allocated",
-    safeOfFmt: f(income) + " income",
-    // Flag when allocations (bills + savings + spend) exceed income.
-    safeNote: overAllocated ? "Allocations exceed your income this month" : "",
+    safeUsedLabel: "spent",
+    safeOfFmt: f(income) + " received",
+    expectedFmt: f(expectedC),
+    expectedMonthFmt: f(expectedMonthC),
+    // Flag when you've spent/paid more than you've actually received.
+    safeNote: overAllocated ? "You've spent more than you've received this month" : "",
 
     fmt: f,
     incomeFmt: f(income),
@@ -358,7 +379,9 @@ export function useDerived() {
     billsPaidFmt: f(billsPaidC),
     billsTotalFmt: f(billsTotal),
 
-    clientTotalFmt: f(clientTotal),
+    clientTotalFmt: f(expectedMonthC),
+    clientReceivedFmt: f(accruedC),
+    instantThisMonthFmt: f(instantThisMonthC),
 
     totalSaved,
     totalSavedFmt: f(totalSaved),

@@ -1,6 +1,7 @@
 import { db } from "./index";
 import { mutate, softDelete } from "@/lib/sync/queue";
 import { cyclePayments, isPaidThisCycle } from "@/lib/bills";
+import { nextPayday } from "@/lib/income";
 import { CATEGORIES } from "@/lib/constants";
 import { nowISO, todayISODate } from "@/lib/dates";
 import { toCentavos } from "@/lib/money";
@@ -97,6 +98,23 @@ export async function recordIncome(
 /** Soft-delete an income transaction. */
 export async function deleteIncome(tx: IncomeTransaction) {
   await softDelete("income_transactions", tx);
+}
+
+/**
+ * Log a one-off ("instant") income received today — money outside the salary
+ * schedule, e.g. a gift from family. Stored as an income_transaction with no
+ * client_id so it doesn't double-count against scheduled accrual.
+ */
+export async function recordInstantIncome(label: string, peso: number) {
+  if (peso <= 0) return;
+  const tx: IncomeTransaction = {
+    ...base(),
+    client_id: "",
+    amount_centavos: toCentavos(peso),
+    received_date: todayISODate(),
+    notes: label.trim() || "Income",
+  };
+  await mutate("income_transactions", "create", tx);
 }
 
 /**
@@ -210,34 +228,57 @@ export async function updateBudget(
   });
 }
 
-/** Add an income source. `peso` is decimal pesos. */
-export async function addClient(name: string, peso: number, freq: SalaryFrequency) {
+interface ClientScheduleOpts {
+  /** Day-of-month for monthly sources (1–31). */
+  payDay?: number;
+  /** YYYY-MM-DD the source is active from (also the anchor for every-2-weeks). */
+  startDate?: string;
+}
+
+/** Add an income source. `peso` is decimal pesos PER PAYCHECK. */
+export async function addClient(
+  name: string,
+  peso: number,
+  freq: SalaryFrequency,
+  opts: ClientScheduleOpts = {},
+) {
   if (!name.trim() || peso <= 0) return;
+  const today = todayISODate();
+  const startDate = opts.startDate || today.slice(0, 7) + "-01";
   const client: Client = {
     ...base(),
     name: name.trim(),
     salary_centavos: toCentavos(peso),
     salary_frequency: freq,
-    next_pay_date: todayISODate(),
+    pay_day: Math.min(31, Math.max(1, Math.round(opts.payDay ?? 30))),
+    start_date: startDate,
+    next_pay_date: startDate,
     notes: "",
   };
+  client.next_pay_date = nextPayday(client, today) ?? startDate;
   await mutate("clients", "create", client);
 }
 
-/** Edit an income source. `peso` is decimal pesos. */
+/** Edit an income source. `peso` is decimal pesos PER PAYCHECK. */
 export async function updateClient(
   client: Client,
   name: string,
   peso: number,
   freq: SalaryFrequency,
+  opts: ClientScheduleOpts = {},
 ) {
   if (!name.trim() || peso <= 0) return;
-  await mutate("clients", "update", {
+  const startDate = opts.startDate || client.start_date;
+  const next: Client = {
     ...client,
     name: name.trim(),
     salary_centavos: toCentavos(peso),
     salary_frequency: freq,
-  });
+    pay_day: Math.min(31, Math.max(1, Math.round(opts.payDay ?? client.pay_day ?? 30))),
+    start_date: startDate,
+  };
+  next.next_pay_date = nextPayday(next, todayISODate()) ?? startDate;
+  await mutate("clients", "update", next);
 }
 
 /** Soft-delete an income source. */

@@ -73,6 +73,18 @@ export class CashflowDB extends Dexie {
           if (!b.start_date) b.start_date = (b.created_at ?? "").slice(0, 10) || "2000-01-01";
         });
     });
+    // v7: income sources gain a pay schedule (pay_day + start_date) so income
+    // accrues on paydays. Backfill existing sources active from their creation
+    // month; default the monthly pay day to 30 (end-of-month).
+    this.version(7).upgrade(async (tx) => {
+      await tx
+        .table("clients")
+        .toCollection()
+        .modify((c: Partial<Client>) => {
+          if (c.pay_day == null) c.pay_day = 30;
+          if (!c.start_date) c.start_date = ((c.created_at ?? "").slice(0, 7) || "2000-01") + "-01";
+        });
+    });
   }
 }
 

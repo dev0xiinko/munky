@@ -23,6 +23,8 @@ interface UIState {
   cfName: string;
   cfAmount: string;
   cfFreq: SalaryFrequency;
+  cfPayDay: string;
+  cfStartDate: string;
 
   go: (screen: Screen) => void;
   openOverlay: (overlay: Exclude<Overlay, null>) => void;
@@ -39,6 +41,8 @@ interface UIState {
   setCfName: (v: string) => void;
   setCfAmount: (v: string) => void;
   setCfFreq: (f: SalaryFrequency) => void;
+  setCfPayDay: (v: string) => void;
+  setCfStartDate: (v: string) => void;
   resetClientForm: () => void;
 }
 
@@ -68,6 +72,8 @@ export const useUI = create<UIState>((set) => ({
   cfName: "",
   cfAmount: "",
   cfFreq: "monthly",
+  cfPayDay: "30",
+  cfStartDate: "",
 
   go: (screen) => set({ screen, overlay: null }),
   openOverlay: (overlay) => set({ overlay }),
@@ -84,5 +90,8 @@ export const useUI = create<UIState>((set) => ({
   setCfName: (cfName) => set({ cfName }),
   setCfAmount: (cfAmount) => set({ cfAmount }),
   setCfFreq: (cfFreq) => set({ cfFreq }),
-  resetClientForm: () => set({ cfName: "", cfAmount: "", cfFreq: "monthly", showClientForm: false }),
+  setCfPayDay: (cfPayDay) => set({ cfPayDay }),
+  setCfStartDate: (cfStartDate) => set({ cfStartDate }),
+  resetClientForm: () =>
+    set({ cfName: "", cfAmount: "", cfFreq: "monthly", cfPayDay: "30", cfStartDate: "", showClientForm: false }),
 }));

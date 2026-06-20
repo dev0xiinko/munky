@@ -159,14 +159,15 @@ export default function Dashboard({ d }: { d: Derived }) {
         </div>
       )}
 
-      {/* allocation breakdown — total income, then what's reserved/spent */}
+      {/* breakdown — what you've received this month, minus what's actually gone out */}
       <div style={{ padding: "20px 20px 0" }}>
         <div style={{ ...eyebrow(), marginBottom: 10 }}>Breakdown</div>
         <div style={{ ...card, borderRadius: 14, padding: "2px 16px" }}>
-          <BreakdownRow label="Total income" value={d.incomeFmt} color="#8FC4A0" strong />
-          <BreakdownRow label="Bills (allocated)" value={ded(d.billsTotal)} top />
-          <BreakdownRow label="Savings (allocated)" value={ded(d.plannedSavings)} top />
-          <BreakdownRow label="Daily expenses" value={ded(d.spent)} top />
+          <BreakdownRow label="Received so far" value={d.incomeFmt} color="#8FC4A0" strong />
+          <BreakdownRow label="Expected this month" value={d.expectedFmt} color="#6B706B" top />
+          <BreakdownRow label="Spent" value={ded(d.spent)} top />
+          <BreakdownRow label="Bills paid" value={ded(d.billsPaid)} top />
+          <BreakdownRow label="Savings set aside" value={ded(d.savings)} top />
           <BreakdownRow
             label="Safe to spend"
             value={d.remainingFmt}
