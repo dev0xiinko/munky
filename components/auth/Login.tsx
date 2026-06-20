@@ -16,15 +16,16 @@ export default function Login() {
     if (!supabase || busy) return;
     setBusy(true);
     setMsg(null);
-    const fn =
+    const { data, error } =
       mode === "signin"
-        ? supabase.auth.signInWithPassword({ email, password })
-        : supabase.auth.signUp({ email, password });
-    const { error } = await fn;
+        ? await supabase.auth.signInWithPassword({ email, password })
+        : await supabase.auth.signUp({ email, password });
     setBusy(false);
     if (error) setMsg(error.message);
-    else if (mode === "signup") setMsg("Check your email to confirm, then sign in.");
-    // onAuthStateChange in AuthGate handles a successful sign-in.
+    else if (mode === "signup" && !data.session)
+      setMsg("Check your email to confirm, then sign in.");
+    // If a session comes back (email confirmation disabled), onAuthStateChange
+    // in AuthGate signs us straight in — no email step, no email rate limit.
   };
 
   return (
