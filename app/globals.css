@@ -148,10 +148,11 @@ textarea {
   background: var(--color-page);
 }
 .cf-device {
-  position: relative;
-  width: 100%;
-  height: 100vh;
-  height: 100dvh;
+  /* Pin to the real visual viewport. iOS standalone under-reports 100dvh here,
+     which left the shell short of the screen bottom (gap under the tab bar);
+     position:fixed + inset:0 fills the screen reliably without trusting dvh. */
+  position: fixed;
+  inset: 0;
   background: var(--color-background);
   color: var(--color-ink);
   overflow: hidden;
@@ -175,6 +176,8 @@ textarea {
     padding: 32px;
   }
   .cf-device {
+    position: relative;
+    inset: auto;
     width: 402px;
     max-width: 100%;
     height: 874px;
