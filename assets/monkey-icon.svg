@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <clipPath id="sq"><rect x="0" y="0" width="512" height="512" rx="116" ry="116"></rect></clipPath>
+    <linearGradient id="shade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.10"></stop>
+      <stop offset="0.5" stop-color="#000000" stop-opacity="0"></stop>
+      <stop offset="1" stop-color="#000000" stop-opacity="0.16"></stop>
+    </linearGradient>
+    <filter id="soft" x="-25%" y="-25%" width="150%" height="160%">
+      <feDropShadow dx="0" dy="7" stdDeviation="9" flood-color="#0a2417" flood-opacity="0.22"></feDropShadow>
+    </filter>
+  </defs>
+  <g clip-path="url(#sq)">
+    <rect x="0" y="0" width="512" height="512" fill="#4C8A5B"></rect>
+    <rect x="0" y="0" width="512" height="512" fill="url(#shade)"></rect>
+    <g filter="url(#soft)">
+      <circle cx="106" cy="296" r="60" fill="#E7F0EA"></circle>
+      <circle cx="106" cy="296" r="31" fill="#C3D7CC"></circle>
+      <circle cx="406" cy="296" r="60" fill="#E7F0EA"></circle>
+      <circle cx="406" cy="296" r="31" fill="#C3D7CC"></circle>
+      <ellipse cx="256" cy="408" rx="182" ry="172" fill="#EAF2EC"></ellipse>
+      <ellipse cx="256" cy="452" rx="92" ry="58" fill="#F4FAF6"></ellipse>
+      <circle cx="196" cy="356" r="64" fill="#FBFEFC"></circle>
+      <circle cx="316" cy="356" r="64" fill="#FBFEFC"></circle>
+      <circle cx="210" cy="374" r="33" fill="#3C6E4E"></circle>
+      <circle cx="302" cy="374" r="33" fill="#3C6E4E"></circle>
+      <circle cx="210" cy="376" r="18" fill="#15331f"></circle>
+      <circle cx="302" cy="376" r="18" fill="#15331f"></circle>
+      <circle cx="201" cy="366" r="6.5" fill="#ffffff"></circle>
+      <circle cx="293" cy="366" r="6.5" fill="#ffffff"></circle>
+      <ellipse cx="240" cy="448" rx="6" ry="8.5" fill="#BFD4C7"></ellipse>
+      <ellipse cx="272" cy="448" rx="6" ry="8.5" fill="#BFD4C7"></ellipse>
+      <path d="M228 466 Q256 481 284 466" fill="none" stroke="#B4CDBC" stroke-width="8" stroke-linecap="round"></path>
+    </g>
+  </g>
+</svg>

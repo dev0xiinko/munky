@@ -1,0 +1,29 @@
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+
+# next.js
+/.next/
+/out/
+/build
+
+# production / deploy
+/.vercel
+
+# misc
+.DS_Store
+*.pem
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# env files — KEEP SECRETS OUT OF GIT.
+# Set these in the Vercel dashboard instead (Project → Settings → Env Vars).
+.env
+.env*.local
+
+# typescript / build cache
+*.tsbuildinfo
+next-env.d.ts
