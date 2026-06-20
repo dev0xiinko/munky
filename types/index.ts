@@ -9,7 +9,7 @@ export interface Syncable {
   deleted_at: string | null;
 }
 
-export type SalaryFrequency = "monthly" | "biweekly" | "weekly" | "custom";
+export type SalaryFrequency = "monthly" | "semimonthly" | "biweekly" | "weekly" | "custom";
 
 export interface Client extends Syncable {
   name: string;

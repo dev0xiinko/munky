@@ -71,13 +71,13 @@ export default function Clients({ d }: { d: Derived }) {
     setLogAmt("");
   };
 
-  const freqBtn = (label: string, freq: "monthly" | "biweekly") => {
+  const freqBtn = (label: string, freq: SalaryFrequency) => {
     const active = cfFreq === freq;
     return (
       <div
         className="cf-tap"
         onClick={() => setCfFreq(freq)}
-        style={{ flex: 1, textAlign: "center", padding: 11, borderRadius: 10, cursor: "pointer", fontSize: 13, fontWeight: 600, background: active ? "#6F9E7E" : "#1A1C1A", color: active ? "#0E0F0E" : "#9BA09B" }}
+        style={{ flex: 1, textAlign: "center", padding: "11px 6px", borderRadius: 10, cursor: "pointer", fontSize: 12, fontWeight: 600, lineHeight: 1.2, background: active ? "#6F9E7E" : "#1A1C1A", color: active ? "#0E0F0E" : "#9BA09B" }}
       >
         {label}
       </div>
@@ -136,14 +136,14 @@ export default function Clients({ d }: { d: Derived }) {
                   <input className="cf-in" placeholder="Name" value={efName} onChange={(e) => setEfName(e.target.value)} />
                   <input className="cf-in" type="number" inputMode="decimal" placeholder="Amount" value={efAmount} onChange={(e) => setEfAmount(e.target.value)} />
                   <div style={{ display: "flex", gap: 8 }}>
-                    {(["monthly", "biweekly"] as const).map((fr) => (
+                    {(["monthly", "semimonthly", "biweekly"] as const).map((fr) => (
                       <div
                         key={fr}
                         className="cf-tap"
                         onClick={() => setEfFreq(fr)}
-                        style={{ flex: 1, textAlign: "center", padding: 10, borderRadius: 10, cursor: "pointer", fontSize: 13, fontWeight: 600, background: efFreq === fr ? "#6F9E7E" : "#1A1C1A", color: efFreq === fr ? "#0E0F0E" : "#9BA09B", border: efFreq === fr ? "none" : "1px solid #2E312E" }}
+                        style={{ flex: 1, textAlign: "center", padding: "10px 6px", borderRadius: 10, cursor: "pointer", fontSize: 12, fontWeight: 600, lineHeight: 1.2, background: efFreq === fr ? "#6F9E7E" : "#1A1C1A", color: efFreq === fr ? "#0E0F0E" : "#9BA09B", border: efFreq === fr ? "none" : "1px solid #2E312E" }}
                       >
-                        {fr === "monthly" ? "Monthly" : "Every 2 weeks"}
+                        {fr === "monthly" ? "Monthly" : fr === "semimonthly" ? "Twice a month" : "Every 2 weeks"}
                       </div>
                     ))}
                   </div>
@@ -188,6 +188,7 @@ export default function Clients({ d }: { d: Derived }) {
             <input className="cf-in" type="number" placeholder="Amount" value={cfAmount} onChange={(e) => setCfAmount(e.target.value)} />
             <div style={{ display: "flex", gap: 8 }}>
               {freqBtn("Monthly", "monthly")}
+              {freqBtn("Twice a month", "semimonthly")}
               {freqBtn("Every 2 weeks", "biweekly")}
             </div>
             <div className="cf-tap" onClick={save} style={{ textAlign: "center", padding: 14, borderRadius: 11, cursor: "pointer", fontWeight: 700, fontSize: 15, background: "#6F9E7E", color: "#0E0F0E" }}>

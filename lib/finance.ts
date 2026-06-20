@@ -5,11 +5,14 @@ import type { Client, Expense, SavingsGoal } from "@/types";
 
 /**
  * Normalize a client's pay into a monthly-equivalent figure.
- * Biweekly = 26 pay periods/yr, weekly = 52/yr — averaged over 12 months.
- * (Using ×2 / ×4 understates annual income.)
+ * Semi-monthly = 24 pay periods/yr (×2, e.g. PH "kinsenas" — 15th & 30th).
+ * Biweekly = 26/yr, weekly = 52/yr — averaged over 12 months.
+ * (Note: biweekly ≠ semi-monthly — 26/12 ≈ 2.17 paychecks/mo, not 2.)
  */
 export function monthlyIncomeOf(c: Pick<Client, "salary_centavos" | "salary_frequency">): number {
   switch (c.salary_frequency) {
+    case "semimonthly":
+      return c.salary_centavos * 2;
     case "biweekly":
       return Math.round((c.salary_centavos * 26) / 12);
     case "weekly":

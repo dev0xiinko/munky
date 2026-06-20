@@ -137,8 +137,13 @@ export function useDerived() {
       id: c.id,
       client: c,
       name: c.name,
-      amtFmt: f(c.salary_centavos) + (c.salary_frequency === "biweekly" ? "/cycle" : "/mo"),
-      freqLabel: c.salary_frequency === "biweekly" ? "Every 2 weeks" : "Monthly",
+      amtFmt: f(c.salary_centavos) + (c.salary_frequency === "monthly" ? "/mo" : "/cycle"),
+      freqLabel:
+        c.salary_frequency === "biweekly"
+          ? "Every 2 weeks"
+          : c.salary_frequency === "semimonthly"
+            ? "Twice a month"
+            : "Monthly",
       nextLabel: shortDate(c.next_pay_date),
       inDays: inDays <= 0 ? "today" : "in " + inDays + "d",
       mono: (c.name.match(/[A-Za-z]/) ?? ["?"])[0].toUpperCase(),
