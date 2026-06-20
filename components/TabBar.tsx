@@ -41,7 +41,7 @@ const TABS: { screen: Screen; label: string }[] = [
 export default function TabBar() {
   const { screen, go } = useUI();
   return (
-    <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: "calc(90px + env(safe-area-inset-bottom))", background: "rgba(14,15,14,0.86)", backdropFilter: "blur(18px)", WebkitBackdropFilter: "blur(18px)", borderTop: "1px solid #232623", display: "flex", alignItems: "flex-start", padding: "11px 8px env(safe-area-inset-bottom)", zIndex: 30 }}>
+    <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, background: "rgba(14,15,14,0.86)", backdropFilter: "blur(18px)", WebkitBackdropFilter: "blur(18px)", borderTop: "1px solid #232623", display: "flex", alignItems: "flex-start", padding: "12px 8px calc(12px + env(safe-area-inset-bottom))", zIndex: 30 }}>
       {TABS.map((t) => {
         const active = screen === t.screen;
         return (

@@ -158,10 +158,10 @@ textarea {
   overflow: hidden;
 }
 .cf-viewport {
-  position: relative;
+  position: absolute;
+  inset: 0;
   display: flex;
   flex-direction: column;
-  height: 100%;
   overflow: hidden;
 }
 .cf-notch {
